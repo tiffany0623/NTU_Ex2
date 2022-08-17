@@ -1,0 +1,150 @@
+---
+title: "NTU Exercise1"
+author: "Yu Tian"
+date: "2022-08-011"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,
+                      results = 'markup',
+                      fig.width = 4,
+                      fig.height = 3,
+                      fig.align = 'center',
+                      message = F,
+                      warning = F)
+```
+
+## Package 
+```{r}
+#package
+library(dplyr)
+
+#set seed
+set.seed(0623)
+```
+
+
+# Q1. 
+### Use the data set called "Q1data.csv". This data set describes one consumer's purchase history of buying a certain good. It contains three variables.
+* choice = 0 means no purchase; choice = 1 means buy.
+* price ($)
+* inventory
+
+```{r}
+# Read (and import) the full exercise data set into R using read.csv()
+data1 <- read.csv(file = 'Q1data.csv')
+
+# view the data example in R
+data1
+dim(data1)
+```
+
+### Use this data set to estimate the logit model. 
+### Use choice as the dependent variable. price and inventory as the indenpendent variable. 
+### Report the estimation results.
+
+```{r}
+lr_data1 <- glm(choice ~ price + inventory, data = data1, family = 'binomial')
+summary(lr_data1)
+```
+
+
+# Q2 
+
+### Based on your parameter estimates, compute the choice probability of choosing to buy when price = 20 and inventory equals mean inventory. [Note that we do not observe price = 20 in the data.  
+### The estimated model allows us to predict what will happen if we set price at some values that we have not tried before.
+```{r}
+# calculate mean inventory
+mean_inventory = mean(data1$inventory)
+
+# specific prediction with price = 20 and mean inventory
+spec_data <- with(data1, data.frame(price = 20, inventory = mean_inventory))
+data1_pred = predict(lr_data1,spec_data)
+data1_pred
+prob = exp(data1_pred)/(1+exp(data1_pred))
+prob
+
+# or 
+data2_pred = predict(lr_data1,spec_data,type='response')
+data2_pred
+
+```
+
+
+# Q3 
+
+### Use the train.csv data set to train a decision tree. The dependent variable is default and the independent variables are as what I give you in the lecture code. 
+### try to train the decision tree using different cp values and report the prediction accuracy for the validation set. 
+
+```{r}
+# Read (and import) the full exercise data set into R using read.csv()
+train_data <- read.csv(file = 'train.csv')
+valid_data <- read.csv(file = 'validation.csv')
+
+# view the data example in R
+train_data %>% head()
+dim(train_data)
+valid_data %>% head()
+dim(valid_data)
+```
+
+```{r}
+# package
+library(rpart)
+
+# Train a decision tree with cp value=0.05
+tree_data <- rpart(default~BorrowerRate+AmountRequested+IsBorrowerHomeowner+bankcard_utilization+credit_lines_last7_years+delinquencies_last7_years+prior_prosper_loans_active+income_range,data=train_data, method="class", cp=0.005)
+
+# report the prediction accuracy for the validation set with cp=0.005
+valid_data1=valid_data[,c('BorrowerRate','AmountRequested','IsBorrowerHomeowner',
+                       'bankcard_utilization','credit_lines_last7_years',
+                       'delinquencies_last7_years','prior_prosper_loans_active',
+                       'income_range')]
+prediction = predict(tree_data, valid_data1, type = 'class')
+accuracy = sum(prediction == valid_data$default)/dim(valid_data)[1]
+accuracy
+
+# using different cp value with 0.01
+tree_data1 <- rpart(default~BorrowerRate+AmountRequested+IsBorrowerHomeowner+bankcard_utilization+credit_lines_last7_years+delinquencies_last7_years+prior_prosper_loans_active+income_range,data=train_data, method="class", cp=0.01)
+
+# report the prediction accuracy for the validation set with cp=0.001
+prediction1 = predict(tree_data1, valid_data1, type = 'class')
+accuracy1 = sum(prediction1 == valid_data$default)/dim(valid_data)[1]
+accuracy1
+
+#  using different cp value with 0.001
+tree_data2 <- rpart(default~BorrowerRate+AmountRequested+IsBorrowerHomeowner+bankcard_utilization+credit_lines_last7_years+delinquencies_last7_years+prior_prosper_loans_active+income_range,data=train_data, method="class", cp=0.001)
+
+# report the prediction accuracy for the validation set with cp=0.001
+prediction2 = predict(tree_data2, valid_data1, type = 'class')
+accuracy2 = sum(prediction2 == valid_data$default)/dim(valid_data)[1]
+accuracy2
+```
+
+
+# Q4 C
+
+### Choose the decision tree with the best prediction performance and plot the decision tree using rpart.plot
+```{r}
+# choose the best decision tree
+x=c(accuracy, accuracy1, accuracy2)
+y=c("tree_data", "tree_data1", "tree_data2")
+z=c(0.005, 0.01, 0.001)
+treemodel = data.frame(x,y,z)
+treemodel[order(treemodel$x, decreasing = TRUE),]
+# From the table above, we can find best tree decision with cp = 0.01
+
+rpart.plot::rpart.plot(tree_data1, box.palette="RdBu", shadow.col="gray", nn=TRUE)
+```
+
+
+
+
+
+
+
+
+
+
+
